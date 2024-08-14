@@ -154,9 +154,9 @@ const NeatDatePicker = ({
 
   useEffect(() => {
     const [y, m, d] = [
-      initialDate?.getFullYear(),
-      initialDate?.getMonth(),
-      initialDate?.getDate(),
+      initialDate?.getFullYear() ?? 0,
+      initialDate?.getMonth() ?? 0,
+      initialDate?.getDate() ?? 0,
     ];
     const updatedInitalDate = initialDate && new Date(y, m, d);
 
