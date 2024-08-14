@@ -1,4 +1,4 @@
-import { ColorValue, ViewStyle } from "react-native";
+import { ColorValue, TextStyle, ViewStyle } from "react-native";
 import { i18nLanguages } from "../lib/lib";
 import { Mode } from "./Key";
 
@@ -16,23 +16,52 @@ export type ColorOptions = {
   /** The text color of all the displayed date when not being selected.
    *
    * @abstract Only six-digits HEX code colors (like #ffffff. #fff won't work) are allowed because I do something like this behind the scene.
-  */
+   */
   dateTextColor?: ColorValue;
   /** The text color of all the displayed date when being selected.
    *
    * @abstract Only six-digits HEX code colors (like #ffffff. #fff won't work) are allowed because I do something like this behind the scene.
-  */
+   */
   selectedDateTextColor?: ColorValue;
   /** The background color of all the displayed date when being selected.
    *
    * @abstract Only six-digits HEX code colors (like #ffffff. #fff won't work) are allowed because I do something like this behind the scene.
-  */
+   */
   selectedDateBackgroundColor?: ColorValue;
   /** The text color of the confirm Button. */
   confirmButtonColor?: ColorValue;
-}
+  headerStyle?: TextStyle;
+};
 
-type DateStringOptions = "ddd mmm dd yyyy HH:MM:ss" | "default" | "m/d/yy" | "shortDate" | "mm/dd/yyyy" | "paddedShortDate" | "mmm d, yyyy" | "mediumDate" | "mmmm d, yyyy" | "longDate" | "dddd, mmmm d, yyyy" | "fullDate" | "h:MM TT" | "shortTime" | "h:MM:ss TT" | "mediumTime" | "h:MM:ss TT Z" | "longTime" | "yyyy-mm-dd" | "isoDate" | "HH:MM:ss" | "isoTime" | "yyyy-mm-dd'T'HH:MM:sso" | "isoDateTime" | "UTC:yyyy-mm-dd'T'HH:MM:ss'Z'" | "isoUtcDateTime" | "ddd, dd mmm yyyy HH:MM:ss Z" | "expiresHeaderFormat"
+type DateStringOptions =
+  | "ddd mmm dd yyyy HH:MM:ss"
+  | "default"
+  | "m/d/yy"
+  | "shortDate"
+  | "mm/dd/yyyy"
+  | "paddedShortDate"
+  | "mmm d, yyyy"
+  | "mediumDate"
+  | "mmmm d, yyyy"
+  | "longDate"
+  | "dddd, mmmm d, yyyy"
+  | "fullDate"
+  | "h:MM TT"
+  | "shortTime"
+  | "h:MM:ss TT"
+  | "mediumTime"
+  | "h:MM:ss TT Z"
+  | "longTime"
+  | "yyyy-mm-dd"
+  | "isoDate"
+  | "HH:MM:ss"
+  | "isoTime"
+  | "yyyy-mm-dd'T'HH:MM:sso"
+  | "isoDateTime"
+  | "UTC:yyyy-mm-dd'T'HH:MM:ss'Z'"
+  | "isoUtcDateTime"
+  | "ddd, dd mmm yyyy HH:MM:ss Z"
+  | "expiresHeaderFormat";
 
 export type NeatDatePickerProps = {
   /**
@@ -154,4 +183,4 @@ export type NeatDatePickerProps = {
    * If true, the date picker will be displayed directly instead of being placed in a modal.
    */
   withoutModal?: boolean;
-}
+};
