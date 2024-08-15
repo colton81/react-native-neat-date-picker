@@ -1,6 +1,6 @@
 import { Output } from "./Key";
 import Modal from "react-native-modal";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { StyleSheet, Dimensions, Platform, I18nManager } from "react-native";
 import Content from "./Content";
 import useDaysOfMonth from "../hooks/useDaysOfMonth";
@@ -14,7 +14,69 @@ I18nManager.allowRTL(false);
  * @issue https://github.com/react-native-modal/react-native-modal/issues/147#issuecomment-610729725
  */
 const winY = Dimensions.get("screen").height;
-
+/**
+ * NeatDatePicker is a customizable date picker component for React Native applications.
+ * It supports single date, date range, and multi-date selection modes.
+ *
+ * @property {ColorOptions} colorOptions - Customization options for colors.
+ * @property {string} dateStringFormat - Format for the date string output (default: "yyyy-mm-dd").
+ * @property {Date} endDate - End date for range selection mode.
+ * @property {Date} initialDate - Initial date to display when the picker opens.
+ * @property {boolean} isVisible - Controls the visibility of the date picker modal.
+ * @property {string} language - Language for localization.
+ * @property {Date} maxDate - Maximum selectable date.
+ * @property {Date} minDate - Minimum selectable date.
+ * @property {ViewStyle} modalStyles - Custom styles for the modal (default: { justifyContent: "center" }).
+ * @property {'single' | 'range' | 'multi'} mode - Date selection mode.
+ * @property {() => void} onBackButtonPress - Callback for back button press (Android).
+ * @property {() => void} onBackdropPress - Callback for backdrop press.
+ * @property {() => void} onCancel - Callback when date selection is canceled.
+ * @property {(output: Output) => void} onConfirm - Callback when date selection is confirmed.
+ * @property {Date} startDate - Start date for range selection mode.
+ * @property {boolean} chooseYearFirst - Whether to show year selection modal first.
+ * @property {boolean} withoutModal - Render picker content without a modal.
+ *
+ * @example Import component:
+ * ```
+ * import NeatDatePicker from './path-to-neat-date-picker';
+ * ```
+ *
+ * @example Basic usage:
+ * ```
+ * <NeatDatePicker
+ *   isVisible={isDatePickerVisible}
+ *   mode="single"
+ *   onCancel={() => setDatePickerVisible(false)}
+ *   onConfirm={(output) => {
+ *     console.log('Selected date:', output.dateString);
+ *     setDatePickerVisible(false);
+ *   }}
+ *   colorOptions={{
+ *     primaryColor: '#007AFF',
+ *     backgroundColor: '#FFFFFF',
+ *     textColor: '#000000',
+ *     selectedTextColor: '#FFFFFF',
+ *     selectedBackgroundColor: '#007AFF'
+ *   }}
+ * />
+ * ```
+ *
+ * @example Range selection:
+ * ```
+ * <NeatDatePicker
+ *   isVisible={isDatePickerVisible}
+ *   mode="range"
+ *   onCancel={() => setDatePickerVisible(false)}
+ *   onConfirm={(output) => {
+ *     console.log('Start date:', output.startDateString);
+ *     console.log('End date:', output.endDateString);
+ *     setDatePickerVisible(false);
+ *   }}
+ *   startDate={new Date()}
+ *   endDate={new Date(new Date().setDate(new Date().getDate() + 7))}
+ * />
+ * ```
+ */
 const NeatDatePicker = ({
   colorOptions,
   dateStringFormat = "yyyy-mm-dd",
@@ -87,11 +149,11 @@ const NeatDatePicker = ({
     setOutput({ ...output, endDate: null });
   };
 
-  const onConfirmPress = () => {
+  const onConfirmPress = (selectedDate: any) => {
     if (mode === "single") {
-      const dateString = format(output.date as Date, dateStringFormat);
+      const dateString = format(selectedDate.date as Date, dateStringFormat);
       const newOutput = {
-        ...output,
+        ...selectedDate,
         dateString,
         startDate: null,
         startDateString: null,
@@ -99,58 +161,61 @@ const NeatDatePicker = ({
         endDateString: null,
       };
       onConfirm(newOutput);
-    } else {
-      // If have not selected any date, just to onCancel
-      if (mode === "range" && !output.startDate) return onCancel();
+      setOutput(newOutput);
+    } else if (mode === "range") {
+      if (!output.startDate) {
+        // First date selection in range mode
+        const newOutput = {
+          ...output,
+          startDate: selectedDate.date,
+          startDateString: format(selectedDate.date as Date, dateStringFormat),
+        };
+        setOutput(newOutput);
+      } else if (!output.endDate) {
+        // Second date selection in range mode
+        const endDate = selectedDate.date;
+        const startDate = output.startDate as Date;
+        const [finalStartDate, finalEndDate] =
+          startDate <= endDate ? [startDate, endDate] : [endDate, startDate];
 
-      //  If have not selected endDate, set it same as startDate
-      if (!output.endDate) autoCompleteEndDate();
-      const startDateString = format(
-        output.startDate as Date,
-        dateStringFormat
-      );
-      const endDateString = format(output.endDate as Date, dateStringFormat);
-      const newOutput = {
-        ...output,
-        startDateString,
-        endDateString,
-        date: null,
-        dateString: null,
-      };
-      onConfirm(newOutput);
+        const newOutput = {
+          startDate: finalStartDate,
+          endDate: finalEndDate,
+          startDateString: format(finalStartDate, dateStringFormat),
+          endDateString: format(finalEndDate, dateStringFormat),
+          date: null,
+          dateString: null,
+        };
+        onConfirm(newOutput);
+        setOutput({ ...newOutput, endDate: null }); // Reset for next selection
+      }
     }
-
-    // Because the selected dates are confirmed, originalOutput should be updated.
-    setOriginalOutput({ ...output });
-
-    // reset displayTime
     setTimeout(() => {
       return mode === "single"
-        ? setDisplayTime(output.date as Date)
-        : setDisplayTime(output.startDate as Date);
+        ? setDisplayTime(selectedDate.date as Date)
+        : setDisplayTime(selectedDate.startDate as Date);
     }, 300);
   };
 
-  const [btnDisabled, setBtnDisabled] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
+  const navigateMonth = useCallback(
+    (direction: "prev" | "next") => {
+      if (isNavigating) return;
 
-  // move to previous month
-  const onPrev = () => {
-    setBtnDisabled(true);
-    setDisplayTime(new Date(year, month - 1, date));
-  };
+      setIsNavigating(true);
+      setDisplayTime((prevTime) => {
+        const newDate = new Date(prevTime);
+        newDate.setMonth(newDate.getMonth() + (direction === "next" ? 1 : -1));
+        return newDate;
+      });
 
-  // move to next month
-  const onNext = () => {
-    setBtnDisabled(true);
-    setDisplayTime(new Date(year, month + 1, date));
-  };
-
-  // Disable Prev & Next buttons for a while after pressing them.
-  // Otherwise if the user presses the button rapidly in a short time
-  // the switching delay of the calendar is not neglectable
-  useEffect(() => {
-    setTimeout(setBtnDisabled, 300, false);
-  }, [btnDisabled]);
+      // Reset the navigation lock after a short delay
+      setTimeout(() => setIsNavigating(false), 300);
+    },
+    [isNavigating]
+  );
+  const onPrev = useCallback(() => navigateMonth("prev"), [navigateMonth]);
+  const onNext = useCallback(() => navigateMonth("next"), [navigateMonth]);
 
   useEffect(() => {
     const [y, m, d] = [
@@ -186,14 +251,14 @@ const NeatDatePicker = ({
           colorOptions,
           chooseYearFirst,
           daysArray,
-          btnDisabled,
+
           displayTime,
           setDisplayTime,
           output,
-          setOutput,
         }}
       />
     );
+
   return (
     <Modal
       isVisible={isVisible}
@@ -222,7 +287,7 @@ const NeatDatePicker = ({
           colorOptions,
           chooseYearFirst,
           daysArray,
-          btnDisabled,
+
           displayTime,
           setDisplayTime,
           output,
@@ -237,11 +302,13 @@ export default NeatDatePicker;
 
 const styles = StyleSheet.create({
   modal: {
-    flex: Platform.OS === "web" ? 1 : 0,
-    height: winY,
+    flex: 1,
+    //height: winY,
     alignItems: "center",
     padding: 0,
+    paddingBottom: Platform.OS == "android" ? 20 : 0,
     margin: 0,
+
     shadowColor: "#000",
     shadowOffset: {
       width: 0,

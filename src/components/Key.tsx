@@ -13,7 +13,7 @@ export type Output = {
   startDate: Date | null;
   endDate: Date | null;
 };
-type colorOptions = {
+export type colorOptions = {
   dateTextColor: ColorValue;
   backgroundColor: ColorValue;
   selectedDateTextColor: ColorValue;
